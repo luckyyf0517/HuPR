@@ -117,6 +117,7 @@ class HuPR3D_horivert(BaseDataset):
                 'imageId': obj['image_id']
             })
         return rec
+    
     def __getitem__(self, index):
         if self.random:
             index = index * random.randint(1, self.sampling_ratio)
@@ -157,6 +158,74 @@ class HuPR3D_horivert(BaseDataset):
                 'imageId': imageId,
                 'jointsGroup': joints,
                 'bbox': bbox}
+    
+    def __len__(self):
+        return len(self.VRDAEPaths_hori)//self.sampling_ratio
+    
+    
+class HuPR3D_simple(BaseDataset):
+    def __init__(self, phase, cfg, args, random=True):
+        if phase not in ('train', 'val', 'test'):
+            raise ValueError('Invalid phase: {}'.format(phase))
+        super(HuPR3D_simple, self).__init__(phase)
+        self.duration = cfg.DATASET.duration # 30 FPS * 60 seconds
+        self.numFrames = cfg.DATASET.numFrames
+        self.numGroupFrames = cfg.DATASET.numGroupFrames
+        self.numChirps = cfg.DATASET.numChirps
+        self.r = cfg.DATASET.rangeSize
+        self.w = cfg.DATASET.azimuthSize
+        self.h = cfg.DATASET.elevationSize
+        self.numKeypoints = cfg.DATASET.numKeypoints
+        self.sampling_ratio = args.sampling_ratio
+        self.dirRoot = cfg.DATASET.dataDir
+        self.idxToJoints = cfg.DATASET.idxToJoints
+        self.random = random
+        
+        self.VRDAEPaths_hori = sorted(os.listdir(os.path.join(self.dirRoot, 'test', 'hori')))
+        self.VRDAEPaths_hori = [os.path.join(self.dirRoot, 'test', 'hori', filename) for filename in self.VRDAEPaths_hori]
+        self.VRDAEPaths_vert = sorted(os.listdir(os.path.join(self.dirRoot, 'test', 'vert')))
+        self.VRDAEPaths_vert = [os.path.join(self.dirRoot, 'test', 'vert', filename) for filename in self.VRDAEPaths_vert]
+        
+        self.transformFunc = self.getTransformFunc(cfg)
+
+    def __getitem__(self, index):
+        if self.random:
+            index = index * random.randint(1, self.sampling_ratio)
+        else:
+            index = index * self.sampling_ratio
+        # collect past frames and furture frames for the center target frame
+        padSize = index % self.duration
+        idx = index - self.numGroupFrames//2 - 1
+        
+        VRDAEmaps_hori = torch.zeros((self.numGroupFrames, self.numFrames, 2, self.r, self.w, self.h))
+        VRDAEmaps_vert = torch.zeros((self.numGroupFrames, self.numFrames, 2, self.r, self.w, self.h))
+        
+        for j in range(self.numGroupFrames):
+            if (j + padSize) <= self.numGroupFrames//2:
+                idx = index - padSize
+            elif j > (self.duration - 1 - padSize) + self.numGroupFrames//2:
+                idx = index + (self.duration - 1 - padSize)
+            else:
+                idx += 1
+            
+            VRDAEPath_hori = self.VRDAEPaths_hori[idx]
+            VRDAEPath_vert = self.VRDAEPaths_vert[idx]
+            VRDAERealImag_hori = np.load(VRDAEPath_hori)
+            VRDAERealImag_vert = np.load(VRDAEPath_vert)
+
+            idxSampleChirps = 0
+            for idxChirps in range(self.numChirps//2 - self.numFrames//2, self.numChirps//2 + self.numFrames//2):
+                VRDAEmaps_hori[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_hori[:, :, :, idxChirps].real).permute(1, 2, 0)
+                VRDAEmaps_hori[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_hori[:, :, :, idxChirps].imag).permute(1, 2, 0)
+                VRDAEmaps_vert[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_vert[:, :, :, idxChirps].real).permute(1, 2, 0)
+                VRDAEmaps_vert[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_vert[:, :, :, idxChirps].imag).permute(1, 2, 0)
+                idxSampleChirps += 1
+
+        return {
+            'VRDAEmap_hori': VRDAEmaps_hori,
+            'VRDAEmap_vert': VRDAEmaps_vert, 
+            'imageId': '%09d' % idx
+        }
     
     def __len__(self):
         return len(self.VRDAEPaths_hori)//self.sampling_ratio
