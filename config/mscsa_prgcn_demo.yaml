@@ -1,0 +1,34 @@
+DATASET:
+  upsamplingFactor: 4 # from heatmaps (64 x 64) to RGB (256 x 256)
+  duration: 100
+  heatmapSize: 64
+  imgSize: 256
+  rangeSize: 64
+  azimuthSize: 64
+  elevationSize: 8
+  numKeypoints: 14
+  numFrames: 8 # num of chirps in one frame to be processed
+  numGroupFrames: 8 # num of frames to be processed
+  numChirps: 16 # num of chirps captured by radar sensors, should always be 16
+  dataDir: 'data/HuPR' #'../radar_skeleton_estimation_iwr1843/data/20220623'
+  testName: []
+  valName: []
+  trainName: []
+  idxToJoints: ["R_Hip", "R_Knee", "R_Ankle", "L_Hip", "L_Knee", "L_Ankle", "Neck", "Head", "L_Shoulder", "L_Elbow", "L_Wrist", "R_Shoulder", "R_Elbow", "R_Wrist"]
+MODEL:
+  numFilters: 32
+TRAINING:
+  batchSize: 12
+  epochs: 200
+  lr: 0.0001
+  warmupEpoch: -1
+  warmupGrowth: 1.005
+  lrDecay: 0.999
+  lrDecayIter: 2000
+  lossDecay: -1
+  optimizer: "adam"
+TEST:
+  batchSize: 32
+  plotImgDir: ''
+SETUP:
+  numWorkers: 4

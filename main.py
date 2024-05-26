@@ -12,8 +12,7 @@ class obj(object):
             else:
                setattr(self, a, obj(b) if isinstance(b, dict) else b)
 
-if __name__ == "__main__":
-
+def parse_arg(): 
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=0, metavar='S',
                         help='random seed (default: 0)')
@@ -27,7 +26,11 @@ if __name__ == "__main__":
     parser.add_argument('--eval', action="store_true")
     parser.add_argument('-sr', '--sampling_ratio', type=int, default=1, help='sampling ratio for training/test (default: 1)')
     parser.add_argument('--keypoints', action='store_true', help='print out the APs of all keypoints')
-    args = parser.parse_args()
+    return parser.parse_args()
+    
+if __name__ == "__main__":
+    args = parse_arg()
+   
     with open('./config/' + args.config, 'r') as f:
         cfg = yaml.safe_load(f)
         cfg = obj(cfg)
