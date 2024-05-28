@@ -181,10 +181,14 @@ class HuPR3D_simple(BaseDataset):
         self.idxToJoints = cfg.DATASET.idxToJoints
         self.random = random
         
-        self.VRDAEPaths_hori = sorted(os.listdir(os.path.join(self.dirRoot, 'test', 'hori')))
-        self.VRDAEPaths_hori = [os.path.join(self.dirRoot, 'test', 'hori', filename) for filename in self.VRDAEPaths_hori]
-        self.VRDAEPaths_vert = sorted(os.listdir(os.path.join(self.dirRoot, 'test', 'vert')))
-        self.VRDAEPaths_vert = [os.path.join(self.dirRoot, 'test', 'vert', filename) for filename in self.VRDAEPaths_vert]
+        self.seq_name = '2024-05-26-22-42-03'
+        self.VRDAEPaths_hori = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'hori')))
+        self.VRDAEPaths_hori = [os.path.join(self.dirRoot, self.seq_name, 'hori', filename) for filename in self.VRDAEPaths_hori]
+        self.VRDAEPaths_vert = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'vert')))
+        self.VRDAEPaths_vert = [os.path.join(self.dirRoot, self.seq_name, 'vert', filename) for filename in self.VRDAEPaths_vert]
+        
+        self.imageIds = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'camera')))
+        self.imageIds = [os.path.join(self.dirRoot, self.seq_name, 'camera', filename) for filename in self.imageIds]
         
         self.transformFunc = self.getTransformFunc(cfg)
 
@@ -212,7 +216,7 @@ class HuPR3D_simple(BaseDataset):
             VRDAEPath_vert = self.VRDAEPaths_vert[idx]
             VRDAERealImag_hori = np.load(VRDAEPath_hori)
             VRDAERealImag_vert = np.load(VRDAEPath_vert)
-
+            
             idxSampleChirps = 0
             for idxChirps in range(self.numChirps//2 - self.numFrames//2, self.numChirps//2 + self.numFrames//2):
                 VRDAEmaps_hori[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_hori[:, :, :, idxChirps].real).permute(1, 2, 0)
@@ -222,6 +226,7 @@ class HuPR3D_simple(BaseDataset):
                 idxSampleChirps += 1
 
         return {
+            'seqIdx': self.seq_name, 
             'VRDAEmap_hori': VRDAEmaps_hori,
             'VRDAEmap_vert': VRDAEmaps_vert, 
             'imageId': '%09d' % idx

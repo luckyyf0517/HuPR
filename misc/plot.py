@@ -80,7 +80,7 @@ def plotHumanPose(batch_joints, cfg, visDir, imageIdx, bbox=None, upsamplingSize
         #             0.5, (0, 255, 0), 2, cv2.LINE_AA)
         cv2.imwrite(imagePath, ndarr[:, :, [2, 1, 0]])
         
-def plotHumanPoseOnly(batch_joints, cfg=None, visDir=None, imageIdx=None, bbox=None, nrow=8, padding=2):
+def plotHumanPoseOnly(batch_joints, cfg=None, visDir=None, seqIdx=None, imageIdx=None, bbox=None, upsamplingSize=(256, 256), nrow=8, padding=2):
     """
     NO IMAGE DATA
     """
@@ -90,8 +90,14 @@ def plotHumanPoseOnly(batch_joints, cfg=None, visDir=None, imageIdx=None, bbox=N
         if not os.path.isdir(imageDir):
             os.mkdir(imageDir)
         imagePath = os.path.join(imageDir, '%09d.png'%int(namestr[-4:]))
+        rgbPath = os.path.join('./data/HuPR', seqIdx[j], 'camera', '%09d.jpg' % int(namestr))
+        rgbImg = Image.open(rgbPath).convert('RGB')
+        transforms_fn = transforms.Compose([
+            transforms.Resize(upsamplingSize),
+            transforms.ToTensor(),
+        ])
+        batch_image = transforms_fn(rgbImg).unsqueeze(0)
         s_joints = np.expand_dims(batch_joints[j], axis=0)
-        batch_image = torch.zeros((1, 3, 256, 256))
         grid = torchvision.utils.make_grid(batch_image, nrow, padding, True)
         ndarr = grid.mul(255).clamp(0, 255).byte().permute(1, 2, 0).cpu().numpy()
         ndarr = ndarr.copy()
