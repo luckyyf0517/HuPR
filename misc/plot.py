@@ -18,7 +18,7 @@ def plotHumanPose(batch_joints, cfg, visDir, imageIdx, bbox=None, upsamplingSize
         if not os.path.isdir(imageDir):
             os.mkdir(imageDir)
         imagePath = os.path.join(imageDir, '%09d.png'%int(namestr[-4:]))
-        rgbPath = os.path.join('../frames', cfg.TEST.plotImgDir, 'single_%d'%int(namestr[:4]), 'processed/images', '%09d.jpg'%int(namestr[-4:]))
+        rgbPath = os.path.join('/root/frames', cfg.TEST.plotImgDir, 'single_%d'%int(namestr[:4]), 'processed/images', '%09d.jpg'%int(namestr[-4:]))
         rgbImg = Image.open(rgbPath).convert('RGB')
         transforms_fn = transforms.Compose([
             transforms.Resize(upsamplingSize),
@@ -86,17 +86,20 @@ def plotHumanPoseOnly(batch_joints, cfg=None, visDir=None, seqIdx=None, imageIdx
     """
     for j in range(len(batch_joints)):
         namestr = imageIdx[j]
-        imageDir = os.path.join(visDir, 'single_%d'%int(namestr[:4]))
+        imageDir = os.path.join(visDir, seqIdx[j], 'pred_result')
         if not os.path.isdir(imageDir):
-            os.mkdir(imageDir)
+            os.makedirs(imageDir, exist_ok=True)
         imagePath = os.path.join(imageDir, '%09d.png'%int(namestr[-4:]))
         rgbPath = os.path.join('./data/HuPR', seqIdx[j], 'camera', '%09d.jpg' % int(namestr))
-        rgbImg = Image.open(rgbPath).convert('RGB')
-        transforms_fn = transforms.Compose([
-            transforms.Resize(upsamplingSize),
-            transforms.ToTensor(),
-        ])
-        batch_image = transforms_fn(rgbImg).unsqueeze(0)
+        if os.path.exists(rgbPath): 
+            rgbImg = Image.open(rgbPath).convert('RGB')
+            transforms_fn = transforms.Compose([
+                transforms.Resize(upsamplingSize),
+                transforms.ToTensor(),
+            ])
+            batch_image = transforms_fn(rgbImg).unsqueeze(0)
+        else: 
+            batch_image = torch.zeros((1, 3, 256, 256))
         s_joints = np.expand_dims(batch_joints[j], axis=0)
         grid = torchvision.utils.make_grid(batch_image, nrow, padding, True)
         ndarr = grid.mul(255).clamp(0, 255).byte().permute(1, 2, 0).cpu().numpy()

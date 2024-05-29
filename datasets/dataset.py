@@ -141,15 +141,17 @@ class HuPR3D_horivert(BaseDataset):
             VRDAEPath_vert = self.VRDAEPaths_vert[idx]
             VRDAERealImag_hori = np.load(VRDAEPath_hori)
             VRDAERealImag_vert = np.load(VRDAEPath_vert)
-
+            
             idxSampleChirps = 0
             for idxChirps in range(self.numChirps//2 - self.numFrames//2, self.numChirps//2 + self.numFrames//2):
+                if idxChirps == 8: 
+                    assert np.all(VRDAERealImag_hori[idxChirps] == 0)
+                # print(idxChirps, np.abs(V).sum(), VRDAERealImag_vert[idxChirps].sum())
                 VRDAEmaps_hori[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_hori[idxChirps].real).permute(1, 2, 0)
                 VRDAEmaps_hori[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_hori[idxChirps].imag).permute(1, 2, 0)
                 VRDAEmaps_vert[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_vert[idxChirps].real).permute(1, 2, 0)
                 VRDAEmaps_vert[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_vert[idxChirps].imag).permute(1, 2, 0)
                 idxSampleChirps += 1
-
         joints = torch.LongTensor(self.annots[index]['joints'])
         bbox = torch.FloatTensor(self.annots[index]['bbox'])
         imageId = self.annots[index]['imageId']
@@ -164,7 +166,7 @@ class HuPR3D_horivert(BaseDataset):
     
     
 class HuPR3D_simple(BaseDataset):
-    def __init__(self, phase, cfg, args, random=True):
+    def __init__(self, phase, cfg, args):
         if phase not in ('train', 'val', 'test'):
             raise ValueError('Invalid phase: {}'.format(phase))
         super(HuPR3D_simple, self).__init__(phase)
@@ -179,24 +181,24 @@ class HuPR3D_simple(BaseDataset):
         self.sampling_ratio = args.sampling_ratio
         self.dirRoot = cfg.DATASET.dataDir
         self.idxToJoints = cfg.DATASET.idxToJoints
-        self.random = random
         
-        self.seq_name = '2024-05-26-22-42-03'
+        # self.seq_name = '2024-05-28-20-36-52'
+        # self.seq_name = '2024-05-28-21-29-20'
+        self.seq_name = 'single_0'
+        print('Processing', self.seq_name)
+        # self.seq_name = 'single_1_8420'
         self.VRDAEPaths_hori = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'hori')))
         self.VRDAEPaths_hori = [os.path.join(self.dirRoot, self.seq_name, 'hori', filename) for filename in self.VRDAEPaths_hori]
         self.VRDAEPaths_vert = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'vert')))
         self.VRDAEPaths_vert = [os.path.join(self.dirRoot, self.seq_name, 'vert', filename) for filename in self.VRDAEPaths_vert]
         
-        self.imageIds = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'camera')))
-        self.imageIds = [os.path.join(self.dirRoot, self.seq_name, 'camera', filename) for filename in self.imageIds]
+        # self.imageIds = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'camera')))
+        # self.imageIds = [os.path.join(self.dirRoot, self.seq_name, 'camera', filename) for filename in self.imageIds]
         
         self.transformFunc = self.getTransformFunc(cfg)
 
     def __getitem__(self, index):
-        if self.random:
-            index = index * random.randint(1, self.sampling_ratio)
-        else:
-            index = index * self.sampling_ratio
+        index = index * self.sampling_ratio
         # collect past frames and furture frames for the center target frame
         padSize = index % self.duration
         idx = index - self.numGroupFrames//2 - 1
@@ -219,10 +221,14 @@ class HuPR3D_simple(BaseDataset):
             
             idxSampleChirps = 0
             for idxChirps in range(self.numChirps//2 - self.numFrames//2, self.numChirps//2 + self.numFrames//2):
-                VRDAEmaps_hori[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_hori[:, :, :, idxChirps].real).permute(1, 2, 0)
-                VRDAEmaps_hori[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_hori[:, :, :, idxChirps].imag).permute(1, 2, 0)
-                VRDAEmaps_vert[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_vert[:, :, :, idxChirps].real).permute(1, 2, 0)
-                VRDAEmaps_vert[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_vert[:, :, :, idxChirps].imag).permute(1, 2, 0)
+                # VRDAEmaps_hori[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_hori[:, :, :, idxChirps].real).permute(1, 2, 0)
+                # VRDAEmaps_hori[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_hori[:, :, :, idxChirps].imag).permute(1, 2, 0)
+                # VRDAEmaps_vert[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_vert[:, :, :, idxChirps].real).permute(1, 2, 0)
+                # VRDAEmaps_vert[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_vert[:, :, :, idxChirps].imag).permute(1, 2, 0)
+                VRDAEmaps_hori[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_hori[idxChirps].real).permute(1, 2, 0)
+                VRDAEmaps_hori[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_hori[idxChirps].imag).permute(1, 2, 0)
+                VRDAEmaps_vert[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_vert[idxChirps].real).permute(1, 2, 0)
+                VRDAEmaps_vert[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_vert[idxChirps].imag).permute(1, 2, 0)
                 idxSampleChirps += 1
 
         return {

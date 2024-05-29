@@ -37,6 +37,7 @@ class Runner(BaseRunner):
         loss_list = []
         self.logger.clear(len(self.testLoader.dataset))
         savePreds = []
+        
         for idx, batch in enumerate(self.testLoader):
             keypoints = batch['jointsGroup']
             bbox = batch['bbox']

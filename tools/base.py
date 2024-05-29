@@ -15,8 +15,8 @@ class BaseRunner():
         np.random.seed(args.seed)
         torch.manual_seed(args.seed)
         torch.cuda.manual_seed_all(args.seed)
-        self.dir = './logs/' + args.dir
-        self.visDir = './visualization/' + args.visDir
+        self.dir = args.dir
+        self.visDir = args.visDir
         self.args = args
         self.cfg = cfg
         self.heatmapSize = self.width = self.height = self.cfg.DATASET.heatmapSize
