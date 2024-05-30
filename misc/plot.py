@@ -94,6 +94,7 @@ def plotHumanPoseOnly(batch_joints, cfg=None, visDir=None, seqIdx=None, imageIdx
         if os.path.exists(rgbPath): 
             rgbImg = Image.open(rgbPath).convert('RGB')
             transforms_fn = transforms.Compose([
+                transforms.CenterCrop(rgbImg.size[1]),
                 transforms.Resize(upsamplingSize),
                 transforms.ToTensor(),
             ])

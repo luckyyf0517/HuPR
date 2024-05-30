@@ -182,14 +182,9 @@ class HuPR3D_simple(BaseDataset):
         self.dirRoot = cfg.DATASET.dataDir
         self.idxToJoints = cfg.DATASET.idxToJoints
         
-        # self.seq_name = '2024-05-29-22-21-29-074018'    # right
-        # self.seq_name = '2024-05-29-22-22-05-443181'    # left
-        # self.seq_name = '2024-05-29-22-22-37-027792'    # T
-        # self.seq_name = '2024-05-29-23-40-00-290270'    # right
-        # self.seq_name = '2024-05-29-23-38-57-931262'    # left
-        # self.seq_name = '2024-05-29-23-41-25-579382'    # left far
-        self.seq_name = '2024-05-29-23-42-19-849302'    # right far
-        # self.seq_name = '2024-05-29-23-42-58-051479'    # T far
+        self.seq_name = \
+            '2024-05-30-17-09-22-176764' 
+            # '2024-05-30-17-08-49-325422'
         
         print('Processing', self.seq_name)
         self.VRDAEPaths_hori = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'hori')))
