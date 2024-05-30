@@ -45,9 +45,9 @@ class RadarObject():
             self.rgbFileNameGroup.append(rgbFileName)
             # self.jointsFileNameGroup.append(jointsFileName)
     
-    def postProcessFFT3D(self, dataFFT):
-        dataFFT = np.fft.fftshift(dataFFT, axes=(0, 1,))
-        dataFFT = np.transpose(dataFFT, (2, 0, 1))
+    def postProcessFFT3D(self, dataFFT):    
+        dataFFT = np.fft.fftshift(dataFFT, axes=(0, 1,))    # [azimuth, elevation, range]
+        dataFFT = np.transpose(dataFFT, (2, 0, 1))  # [range, azimuth, elevation]
         dataFFT = np.flip(dataFFT, axis=(1, 2))
         return dataFFT
 
@@ -169,9 +169,7 @@ class RadarObject():
         for idxChirp in range(self.idxProcChirp//2 - chirpPad//2, self.idxProcChirp//2 + chirpPad//2):
             dataFFTGroup[i, :, :, :] = self.postProcessFFT3D(np.transpose(dataTemp[idxChirp, :, :, :], (1, 2, 0)))
             i += 1
-        print(dataFFTGroup[8])
-        print(dataFFTGroup.shape, dataFFTGroup.sum())
-        exit()
+
         return dataFFTGroup  
 
     def saveDataAsFigure(self, img, joints, output, visDirName, idxFrame, output2=None):

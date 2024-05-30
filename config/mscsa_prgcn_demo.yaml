@@ -1,6 +1,6 @@
 DATASET:
   upsamplingFactor: 4 # from heatmaps (64 x 64) to RGB (256 x 256)
-  duration: 600
+  duration: 50
   heatmapSize: 64
   imgSize: 256
   rangeSize: 64
@@ -10,7 +10,7 @@ DATASET:
   numFrames: 8 # num of chirps in one frame to be processed
   numGroupFrames: 8 # num of frames to be processed
   numChirps: 16 # num of chirps captured by radar sensors, should always be 16
-  dataDir: '/root/proc_data/HuPR_official/' #'../radar_skeleton_estimation_iwr1843/data/20220623'
+  dataDir: '/root/proc_data/HuPR/' #'../radar_skeleton_estimation_iwr1843/data/20220623'
   testName: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   valName: []
   trainName: []

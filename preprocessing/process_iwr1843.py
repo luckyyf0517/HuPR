@@ -1,8 +1,10 @@
 import os
 import json
 import time
-# import cupy as np
-import numpy as np
+import mpld3
+import cupy as np
+# import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image
 from plot_utils import PlotMaps, PlotHeatmaps
 from tqdm import tqdm
@@ -37,7 +39,7 @@ class RadarObject():
         self.initialize(numGroup)
 
     def initialize(self, numGroup):
-        for i in range(1, numGroup + 1):
+        for i in range(2, numGroup + 1):
             radarDataFileName = ['/root/raw_data/hupr/single_' + str(i) + '/hori', 
                                  '/root/raw_data/hupr/single_' + str(i) + '/vert']
             saveDirName = '/root/proc_data/' + self.saveRoot + '/single_' + str(i)
@@ -65,15 +67,6 @@ class RadarObject():
         LVDS[0, 1::2] = adcData[1]
         LVDS[1, 0::2] = adcData[2]
         LVDS[1, 1::2] = adcData[3]
-        # adcData = np.zeros((self.numRX, int(fileSize/self.numRX)), dtype = 'complex_')
-        # iter = 0
-        # for i in range(0, fileSize, self.numADCSamples * 4):
-        #     adcData[0][iter:iter+self.numADCSamples] = LVDS[0][i:i+self.numADCSamples] + np.sqrt(-1+0j)*LVDS[1][i:i+self.numADCSamples]
-        #     adcData[1][iter:iter+self.numADCSamples] = LVDS[0][i+self.numADCSamples:i+self.numADCSamples*2] + np.sqrt(-1+0j)*LVDS[1][i+self.numADCSamples:i+self.numADCSamples*2]
-        #     adcData[2][iter:iter+self.numADCSamples] = LVDS[0][i+self.numADCSamples*2:i+self.numADCSamples*3] + np.sqrt(-1+0j)*LVDS[1][i+self.numADCSamples*2:i+self.numADCSamples*3]
-        #     adcData[3][iter:iter+self.numADCSamples] = LVDS[0][i+self.numADCSamples*3:i+self.numADCSamples*4] + np.sqrt(-1+0j)*LVDS[1][i+self.numADCSamples*3:i+self.numADCSamples*4]
-        #     iter = iter + self.numADCSamples
-        # adcDataReshape = adcData.reshape(self.numRX, -1, self.numADCSamples)
         adcData = LVDS[0] + 1j * LVDS[1]
         adcDataReshape = adcData.reshape(self.numFrame, self.idxProcChirp, self.numRX * self.numTX, self.numADCSamples)
         print('Shape of radar data:', adcDataReshape.shape)
@@ -86,27 +79,12 @@ class RadarObject():
 
     def generateHeatmap(self, frame):
         # step1: split data
-        # dataRadar = np.zeros((self.numRX * 2, self.idxProcChirp, self.numADCSamples), dtype='complex_')
-        # dataRadar2 = np.zeros((self.numRX, self.idxProcChirp, self.numADCSamples), dtype='complex_')
-        # # Process radar data with TDM-MIMO
-        # for idxRX in range(self.numRX):
-        #     for idxChirp in range(self.numChirp):
-        #         if idxChirp % 3 == 0:
-        #             dataRadar[idxRX, idxChirp//3] = frame[idxRX, idxChirp]
-        #         if idxChirp % 3 == 1:
-        #             dataRadar2[idxRX, idxChirp//3] = frame[idxRX, idxChirp]
-        #         elif idxChirp % 3 == 2:
-        #             dataRadar[idxRX+4, idxChirp//3] = frame[idxRX, idxChirp]
         dataRadar = frame[:, [0,1,2,3,8,9,10,11], :].transpose(1, 0, 2)
         dataRadar2 = frame[:, [4,5,6,7], :].transpose(1, 0, 2)
         # step1: clutter removal
         dataRadar = self.clutterRemoval(dataRadar, axis=1)
         dataRadar2 = self.clutterRemoval(dataRadar2, axis=1)
         # step2: range-doppler FFT
-        # for idxRX in range(self.numRX * 2):
-        #     dataRadar[idxRX, :, :] = np.fft.fft2(dataRadar[idxRX, :, :])
-        # for idxRX in range(self.numRX * 1):
-        #     dataRadar2[idxRX, :, :] = np.fft.fft2(dataRadar2[idxRX, :, :])
         dataRadar = np.fft.fft(dataRadar, axis=1)
         dataRadar = np.fft.fft(dataRadar, axis=2)
         dataRadar2 = np.fft.fft(dataRadar2, axis=1)
@@ -121,34 +99,24 @@ class RadarObject():
         dataMerge = np.pad(dataMerge, paddingEle, mode='constant')
         dataMerge[:, 2: 6, :, :] = np.fft.fft(dataMerge[:, 2: 6, :, :], axis=0)
         dataMerge = np.fft.fft(dataMerge, axis=1)
-        # for idxChirp in range(self.idxProcChirp):
-        #     for idxADC in range(self.numADCSamples):
-        #         dataMerge[:, 2, idxChirp, idxADC] = np.fft.fft(dataMerge[:, 2, idxChirp, idxADC])
-        #         dataMerge[:, 3, idxChirp, idxADC] = np.fft.fft(dataMerge[:, 3, idxChirp, idxADC])
-        #         dataMerge[:, 4, idxChirp, idxADC] = np.fft.fft(dataMerge[:, 4, idxChirp, idxADC])
-        #         dataMerge[:, 5, idxChirp, idxADC] = np.fft.fft(dataMerge[:, 5, idxChirp, idxADC])
-        #         for idxEle in range(self.numEleBins):
-        #             dataMerge[idxEle, :, idxChirp, idxADC] = np.fft.fft(dataMerge[idxEle, :, idxChirp, idxADC])
+        # shft the velocity information
+        dataFFTGroup = np.fft.fftshift(dataMerge, axes=(0, 1, 2))
         # select specific area of ADCSamples (containing signal responses)
-        # idxADCSpecific = [i for i in range(94, 30, -1)] # 84, 20
         idxADCSpecific = [i for i in range(31, 95)] # 84, 20
+
+        dataFFTGroup = dataFFTGroup.transpose((2, 3, 1, 0)) # [doppler, range, angle, elevation]
+        plt.figure(figsize=(16, 4))
+        for i in range(8): 
+            plt.subplot(1, 8, i + 1)
+            plt.imshow(np.abs(dataFFTGroup[:, :, :, i]).sum(axis=0).get())
+            plt.title('elevation %d' % i)
+        mpld3.show()
+        exit()
+
         # select specific velocity information
         chirpPad = self.idxProcChirp//self.numGroupChirp
-        dataFFTGroup = np.fft.fftshift(dataMerge, axes=(0, 1, 2))
-        dataFFTGroup = dataFFTGroup[:, :, self.idxProcChirp//2 - chirpPad//2: self.idxProcChirp//2 + chirpPad//2, idxADCSpecific].transpose((2, 3, 1, 0))
+        dataFFTGroup = dataFFTGroup[self.idxProcChirp//2 - chirpPad//2: self.idxProcChirp//2 + chirpPad//2, :, :, idxADCSpecific]
         dataFFTGroup = np.flip(dataFFTGroup, axis=(1, 2, 3))
-        # # shft the velocity information
-        # dataTemp = np.zeros((self.idxProcChirp, self.numADCSamples//self.adcRatio, self.numAngleBins, self.numEleBins), dtype='complex_')
-        # dataFFTGroup = np.zeros((self.idxProcChirp//self.numGroupChirp, self.numADCSamples//self.adcRatio, self.numAngleBins, self.numEleBins), dtype='complex_')
-        # for idxEle in range(self.numEleBins):
-        #     for idxRX in range(self.numAngleBins):
-        #         for idxADC in range(self.numADCSamples//self.adcRatio):
-        #             dataTemp[:, idxADC, idxRX, idxEle] = dataMerge[idxEle, idxRX, :, idxADCSpecific[idxADC]]
-        #             dataTemp[:, idxADC, idxRX, idxEle] = np.fft.fftshift(dataTemp[:, idxADC, idxRX, idxEle], axes=(0))
-        # i = 0
-        # for idxChirp in range(self.idxProcChirp//2 - chirpPad//2, self.idxProcChirp//2 + chirpPad//2):
-        #     dataFFTGroup[i, :, :, :] = self.postProcessFFT3D(np.transpose(dataTemp[idxChirp, :, :, :], (1, 2, 0)))
-        #     i += 1
         return dataFFTGroup  
     
     def saveDataAsFigure(self, img, joints, output, visDirName, idxFrame, output2=None):
