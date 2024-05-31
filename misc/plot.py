@@ -17,7 +17,7 @@ def plotHumanPose(batch_joints, cfg, visDir, imageIdx, bbox=None, upsamplingSize
         imageDir = os.path.join(visDir, 'single_%d'%int(namestr[:4]))
         if not os.path.isdir(imageDir):
             os.mkdir(imageDir)
-        imagePath = os.path.join(imageDir, '%09d.png'%int(namestr[-4:]))
+        imagePath = os.path.join(imageDir, 'pred_result', '%09d.png'%int(namestr[-4:]))
         rgbPath = os.path.join('/root/frames', cfg.TEST.plotImgDir, 'single_%d'%int(namestr[:4]), 'processed/images', '%09d.jpg'%int(namestr[-4:]))
         rgbImg = Image.open(rgbPath).convert('RGB')
         transforms_fn = transforms.Compose([
