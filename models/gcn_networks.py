@@ -21,7 +21,7 @@ class GCN_layers(nn.Module):
             self.bias.data.uniform_(-stdv, stdv)
 
     def forward(self, input, adj):
-        support = torch.matmul(input, adj)
+        support = torch.matmul(input, adj.to(input.device))
         output = torch.matmul(self.weight, support)
         if self.bias is not None:
             return output + self.bias

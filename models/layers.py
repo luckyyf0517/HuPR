@@ -109,7 +109,7 @@ class MultiScaleCrossSelfAttentionPRGCN(nn.Module):
             [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0],#RShoulder
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],#RElbow
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]#RWrist
-        ], dtype=torch.float).cuda()
+        ], dtype=torch.float)
         self.gcn = PRGCN(cfg, A)
 
         filterList = [self.numFilters*8, self.numFilters*4, self.numFilters*2]

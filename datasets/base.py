@@ -61,20 +61,20 @@ def generateGTAnnot(cfg, phase='train'):
     for annot_idx in group_idx: 
         with open(os.path.join(cfg.DATASET.dataDir, 'single_%d' % annot_idx, 'annotation.json')) as fp:
             annot_file = json.load(fp)
-            for block in annot_file: 
-                image_id = int(block['image'][:-4]) + annot_idx * 100000 #image_id = id
+            for i, block in enumerate(annot_file): 
+                image_id = int(block['image'][:-4]) + annot_idx * 100000 
                 joints = np.array(block["joints"])
-                bbox = block["bbox"]
+                bbox = block["bbox"] if 'bbox' in block else None
                 visIdx = np.ones((14 , 1)) + 1.0 #2 is labeled and visible
                 joints = np.concatenate((joints, visIdx), axis=1).reshape(len(joints) * 3).tolist()
-                area = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) / 2
+                area = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) / 2 if bbox else None
                 annot["annotations"].append({
                     "num_keypoints": 14,
                     "area": area,
                     "iscrowd": 0,
                     "keypoints": joints,
                     "image_id": image_id,
-                    "bbox": [bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]],
+                    "bbox": [bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]] if bbox else None,
                     "category_id": 1,
                     "id": image_id,
                 })
@@ -88,7 +88,7 @@ def generateGTAnnot(cfg, phase='train'):
                     "flickr_url": "None",
                     "id": image_id
                 })
-            print('Generate GTs for single_%d for %s stage'%(annot_idx, phase))
+            # print('Generate GTs for single_%d for %s stage'%(annot_idx, phase))
     # with open(os.path.join(cfg.DATASET.dataDir, 'hrnet_annot_%s.json' % phase)) as fp:
     #     annot_files = json.load(fp)
         

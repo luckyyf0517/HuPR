@@ -45,5 +45,6 @@ class LossComputer():
         return loss, loss2, pred2d, gt2d
 
     def computeBCESingleFrame(self, preds, gt):
-        loss = self.bce(preds, gt.to(self.device))
+        loss = self.bce(preds, gt.to(preds.device))
+        loss = self.bce(preds, gt.to(preds.device))
         return loss

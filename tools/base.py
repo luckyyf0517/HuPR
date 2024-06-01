@@ -37,9 +37,9 @@ class BaseRunner():
             os.mkdir(self.dir)
         if not os.path.isdir(self.visDir):
             os.mkdir(self.visDir)
-        if not self.args.eval:
-            print('==========>Train set size:', len(self.trainLoader))
-        print('==========>Test set size:', len(self.testLoader))
+        # if not self.args.eval:
+        #     print('==========>Train set size:', len(self.trainLoader))
+        # print('==========>Test set size:', len(self.testLoader))
   
         if self.cfg.TRAINING.optimizer == 'sgd':
             self.optimizer = optim.SGD(self.model.parameters(), lr=LR, momentum=0.9, weight_decay=1e-4)
@@ -79,13 +79,13 @@ class BaseRunner():
             'optimizer_state_dict': self.optimizer.state_dict(),
             'accuracy': self.logger.showBestAP(),
         }
-        if self.logger.isBestAccAP(acc):
-            saveGroup['accuracy'] = self.logger.showBestAP()
-            print('==========>Save the best model...')
-            torch.save(saveGroup, os.path.join(self.dir, 'model_best.pth'))
+        # if self.logger.isBestAccAP(acc):
+        #     saveGroup['accuracy'] = self.logger.showBestAP()
+        #     print('==========>Save the best model...')
+        #     torch.save(saveGroup, os.path.join(self.dir, 'model_best.pth'))
 
-        print('==========>Save the latest model...')
-        torch.save(saveGroup, os.path.join(self.dir, 'checkpoint.pth'))
+        # print('==========>Save the latest model...')
+        # torch.save(saveGroup, os.path.join(self.dir, 'checkpoint.pth'))
         if epoch % 5 == 0:
             torch.save(saveGroup, os.path.join(self.dir, 'checkpoint_%d.pth'%epoch))
 

@@ -40,5 +40,5 @@ if __name__ == "__main__":
         trigger.loadModelWeight('model_best')
         trigger.eval(visualization=vis)
     else:
-        trigger.loadModelWeight('checkpoint')
+        trigger.loadModelWeight('model_best')
         trigger.train()

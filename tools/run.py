@@ -8,6 +8,7 @@ from datasets import getDataset
 import torch.utils.data as data
 import torch.nn.functional as F
 from tools.base import BaseRunner
+from tensorboardX import SummaryWriter
 
 
 class Runner(BaseRunner):
@@ -40,7 +41,7 @@ class Runner(BaseRunner):
         
         for idx, batch in enumerate(self.testLoader):
             keypoints = batch['jointsGroup']
-            bbox = batch['bbox']
+            bbox = None # batch['bbox']
             imageId = batch['imageId']
             with torch.no_grad():
                 VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
@@ -52,18 +53,23 @@ class Runner(BaseRunner):
                     plotHumanPose(preds*self.imgHeatmapRatio, self.cfg, 
                                   self.visDir, imageId, None)
                     # for drawing GT
-                    # plotHumanPose(gts*self.imgHeatmapRatio, self.cfg, 
-                    #               self.visDir, imageId, None)
-
-            self.saveKeypoints(savePreds, preds*self.imgHeatmapRatio, bbox, imageId)
+                    plotHumanPose(gts * self.imgHeatmapRatio, self.cfg, 
+                                  self.visDir, imageId, None, truth=True)
+            # self.saveKeypoints(savePreds, preds*self.imgHeatmapRatio, bbox, imageId)
             loss_list.append(loss.item())
-        self.writeKeypoints(savePreds)
-        if self.args.keypoints:
-            accAP = self.testSet.evaluateEach(self.dir)
-        accAP = self.testSet.evaluate(self.dir)
-        return accAP
+        # self.writeKeypoints(savePreds)
+        # if self.args.keypoints:
+        #     accAP = self.testSet.evaluateEach(self.dir)
+        # accAP = self.testSet.evaluate(self.dir)
+        # return accAP
+        return sum(loss_list)
 
     def train(self):
+        
+        # init tensorboard
+        writer = SummaryWriter()
+        global_step = 0
+        
         for epoch in range(self.start_epoch, self.cfg.TRAINING.epochs):
             self.model.train()
             loss_list = []
@@ -71,17 +77,19 @@ class Runner(BaseRunner):
             for idxBatch, batch in enumerate(self.trainLoader):
                 self.optimizer.zero_grad()
                 keypoints = batch['jointsGroup']
-                bbox = batch['bbox']
+                # bbox = batch['bbox']
                 VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
                 VRDAEmaps_vert = batch['VRDAEmap_vert'].float().to(self.device)
                 preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
                 loss, loss2, _, _ = self.lossComputer.computeLoss(preds, keypoints)
+                writer.add_scalar('Loss/train', loss, global_step)
                 loss.backward()
                 self.optimizer.step()                    
                 self.logger.display(loss, loss2, keypoints.size(0), epoch)
                 if idxBatch % self.cfg.TRAINING.lrDecayIter == 0: #200 == 0:
                   self.adjustLR(epoch)
                 loss_list.append(loss.item())
-            accAP = self.eval(visualization=False, epoch=epoch)
-            self.saveModelWeight(epoch, accAP)
+                global_step += 1
+            # accAP = self.eval(visualization=False, epoch=epoch)
+            self.saveModelWeight(epoch, sum(loss_list))
             self.saveLosslist(epoch, loss_list, 'train')

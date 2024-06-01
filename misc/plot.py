@@ -11,22 +11,33 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torchvision.utils import save_image, make_grid
 
-def plotHumanPose(batch_joints, cfg, visDir, imageIdx, bbox=None, upsamplingSize=(256, 256), nrow=8, padding=2):
+def plotHumanPose(batch_joints, cfg, visDir, imageIdx, bbox=None, upsamplingSize=(256, 256), nrow=8, padding=2, truth=False):
     for j in range(len(batch_joints)):
         namestr = '%09d'%imageIdx[j].item()
-        imageDir = os.path.join(visDir, 'single_%d'%int(namestr[:4]))
-        if not os.path.isdir(imageDir):
-            os.mkdir(imageDir)
-        imagePath = os.path.join(imageDir, 'pred_result', '%09d.png'%int(namestr[-4:]))
+        imageDir = os.path.join(visDir, 'single_%d'%int(namestr[:4]), 'pred_result')
+        if not os.path.exists(imageDir):
+            os.makedirs(imageDir)
+        if not truth: 
+            imagePath = os.path.join(imageDir, '%09d.png'%int(namestr[-4:]))
+        else: 
+            imagePath = os.path.join(imageDir, '%09d_gt.png'%int(namestr[-4:]))
+            
         rgbPath = os.path.join('/root/frames', cfg.TEST.plotImgDir, 'single_%d'%int(namestr[:4]), 'processed/images', '%09d.jpg'%int(namestr[-4:]))
-        rgbImg = Image.open(rgbPath).convert('RGB')
-        transforms_fn = transforms.Compose([
-            transforms.Resize(upsamplingSize),
-            transforms.ToTensor(),
-        ])
-        batch_image = transforms_fn(rgbImg).unsqueeze(0)
-        s_joints = np.expand_dims(batch_joints[j], axis=0)
         
+        # if os.path.exists(rgbPath): 
+        #     rgbImg = Image.open(rgbPath).convert('RGB')
+        #     transforms_fn = transforms.Compose([
+        #         transforms.CenterCrop(rgbImg.size[1]),
+        #         transforms.Resize(upsamplingSize),
+        #         transforms.ToTensor(),
+        #     ])
+        #     batch_image = transforms_fn(rgbImg).unsqueeze(0)
+        # else: 
+        #     batch_image = torch.zeros((1, 3, 256, 256))
+        batch_image = torch.zeros((1, 3, 256, 256))
+        
+
+        s_joints = np.expand_dims(batch_joints[j], axis=0)
         grid = torchvision.utils.make_grid(batch_image, nrow, padding, True)
         ndarr = grid.mul(255).clamp(0, 255).byte().permute(1, 2, 0).cpu().numpy()
         ndarr = ndarr.copy()
@@ -48,6 +59,7 @@ def plotHumanPose(batch_joints, cfg, visDir, imageIdx, bbox=None, upsamplingSize
                     joint[1] = y * height + padding + joint[1]
                     cv2.circle(ndarr, (int(joint[0]), int(joint[1])), 2, [255, 0, 0], 2)
                 k = k + 1
+                
         joints_edges = [[(int(joints[0][0]), int(joints[0][1])), (int(joints[1][0]), int(joints[1][1]))],
                         [(int(joints[1][0]), int(joints[1][1])), (int(joints[2][0]), int(joints[2][1]))],
                         [(int(joints[0][0]), int(joints[0][1])), (int(joints[3][0]), int(joints[3][1]))],

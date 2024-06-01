@@ -100,8 +100,8 @@ class HuPR3D_horivert(BaseDataset):
         objs = self.coco.loadAnns(annIds)
         rec = []
         for obj in objs:
-            joints_2d = np.zeros((self.numKeypoints, 2), dtype=np.float)
-            joints_2d_vis = np.zeros((self.numKeypoints, 2), dtype=np.float)
+            joints_2d = np.zeros((self.numKeypoints, 2), dtype=np.float64)
+            joints_2d_vis = np.zeros((self.numKeypoints, 2), dtype=np.float64)
             for ipt in range(self.numKeypoints):
                 joints_2d[ipt, 0] = obj['keypoints'][ipt * 3 + 0]
                 joints_2d[ipt, 1] = obj['keypoints'][ipt * 3 + 1]
@@ -144,95 +144,23 @@ class HuPR3D_horivert(BaseDataset):
             
             idxSampleChirps = 0
             for idxChirps in range(self.numChirps//2 - self.numFrames//2, self.numChirps//2 + self.numFrames//2):
-                if idxChirps == 8: 
-                    assert np.all(VRDAERealImag_hori[idxChirps] == 0)
-                # print(idxChirps, np.abs(V).sum(), VRDAERealImag_vert[idxChirps].sum())
                 VRDAEmaps_hori[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_hori[idxChirps].real).permute(1, 2, 0)
                 VRDAEmaps_hori[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_hori[idxChirps].imag).permute(1, 2, 0)
                 VRDAEmaps_vert[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_vert[idxChirps].real).permute(1, 2, 0)
                 VRDAEmaps_vert[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_vert[idxChirps].imag).permute(1, 2, 0)
                 idxSampleChirps += 1
         joints = torch.LongTensor(self.annots[index]['joints'])
-        bbox = torch.FloatTensor(self.annots[index]['bbox'])
         imageId = self.annots[index]['imageId']
-        return {'VRDAEmap_hori': VRDAEmaps_hori,
-                'VRDAEmap_vert': VRDAEmaps_vert,
-                'imageId': imageId,
-                'jointsGroup': joints,
-                'bbox': bbox}
-    
-    def __len__(self):
-        return len(self.VRDAEPaths_hori)//self.sampling_ratio
-    
-    
-class HuPR3D_simple(BaseDataset):
-    def __init__(self, phase, cfg, args):
-        if phase not in ('train', 'val', 'test'):
-            raise ValueError('Invalid phase: {}'.format(phase))
-        super(HuPR3D_simple, self).__init__(phase)
-        self.duration = cfg.DATASET.duration # 30 FPS * 60 seconds
-        self.numFrames = cfg.DATASET.numFrames
-        self.numGroupFrames = cfg.DATASET.numGroupFrames
-        self.numChirps = cfg.DATASET.numChirps
-        self.r = cfg.DATASET.rangeSize
-        self.w = cfg.DATASET.azimuthSize
-        self.h = cfg.DATASET.elevationSize
-        self.numKeypoints = cfg.DATASET.numKeypoints
-        self.sampling_ratio = args.sampling_ratio
-        self.dirRoot = cfg.DATASET.dataDir
-        self.idxToJoints = cfg.DATASET.idxToJoints
-        
-        self.seq_name = \
-            '2024-05-30-17-09-22-176764' 
-            # '2024-05-30-17-08-49-325422'
-        
-        print('Processing', self.seq_name)
-        self.VRDAEPaths_hori = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'hori')))
-        self.VRDAEPaths_hori = [os.path.join(self.dirRoot, self.seq_name, 'hori', filename) for filename in self.VRDAEPaths_hori]
-        self.VRDAEPaths_vert = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'vert')))
-        self.VRDAEPaths_vert = [os.path.join(self.dirRoot, self.seq_name, 'vert', filename) for filename in self.VRDAEPaths_vert]
-        
-        # self.imageIds = sorted(os.listdir(os.path.join(self.dirRoot, self.seq_name, 'camera')))
-        # self.imageIds = [os.path.join(self.dirRoot, self.seq_name, 'camera', filename) for filename in self.imageIds]
-        
-        self.transformFunc = self.getTransformFunc(cfg)
-
-    def __getitem__(self, index):
-        index = index * self.sampling_ratio
-        # collect past frames and furture frames for the center target frame
-        padSize = index % self.duration
-        idx = index - self.numGroupFrames//2 - 1
-        
-        VRDAEmaps_hori = torch.zeros((self.numGroupFrames, self.numFrames, 2, self.r, self.w, self.h))
-        VRDAEmaps_vert = torch.zeros((self.numGroupFrames, self.numFrames, 2, self.r, self.w, self.h))
-        
-        for j in range(self.numGroupFrames):
-            if (j + padSize) <= self.numGroupFrames//2:
-                idx = index - padSize
-            elif j > (self.duration - 1 - padSize) + self.numGroupFrames//2:
-                idx = index + (self.duration - 1 - padSize)
-            else:
-                idx += 1
-            
-            VRDAEPath_hori = self.VRDAEPaths_hori[idx]
-            VRDAEPath_vert = self.VRDAEPaths_vert[idx]
-            VRDAERealImag_hori = np.load(VRDAEPath_hori)
-            VRDAERealImag_vert = np.load(VRDAEPath_vert)
-            
-            idxSampleChirps = 0
-            for idxChirps in range(self.numChirps//2 - self.numFrames//2, self.numChirps//2 + self.numFrames//2):
-                VRDAEmaps_hori[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_hori[idxChirps].real).permute(1, 2, 0)
-                VRDAEmaps_hori[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_hori[idxChirps].imag).permute(1, 2, 0)
-                VRDAEmaps_vert[j, idxSampleChirps, 0, :, :, :] = self.transformFunc(VRDAERealImag_vert[idxChirps].real).permute(1, 2, 0)
-                VRDAEmaps_vert[j, idxSampleChirps, 1, :, :, :] = self.transformFunc(VRDAERealImag_vert[idxChirps].imag).permute(1, 2, 0)
-                idxSampleChirps += 1
-
-        return {
-            'seqIdx': self.seq_name, 
+        item_dict = {
             'VRDAEmap_hori': VRDAEmaps_hori,
-            'VRDAEmap_vert': VRDAEmaps_vert, 
-            'imageId': '%09d' % idx
-        }
+            'VRDAEmap_vert': VRDAEmaps_vert,
+            'imageId': imageId,
+            'jointsGroup': joints}
+        if self.annots[index]['bbox'] is not None: 
+            item_dict['bbox'] = torch.FloatTensor(self.annots[index]['bbox'])
+        return item_dict
     
     def __len__(self):
         return len(self.VRDAEPaths_hori)//self.sampling_ratio
+    
+ 
