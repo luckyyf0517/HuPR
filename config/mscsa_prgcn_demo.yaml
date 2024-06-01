@@ -29,6 +29,6 @@ TRAINING:
   optimizer: "adam"
 TEST:
   batchSize: 32
-  plotImgDir: ''
+  plotImgDir: '/root/raw_data/HuPR_demo/'
 SETUP:
   numWorkers: 4
